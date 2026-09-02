@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AETHER v1 — Adaptive Expense &amp; Fee Reduction OS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar glass">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">AE</div>
+        <div>
+          <h1>AETHER <span class="ver">v1</span></h1>
+          <p class="tagline">Adaptive Expense &amp; Fee Reduction OS</p>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <span id="as-of" class="pill"></span>
+        <span id="clock" class="pill muted"></span>
+      </div>
+    </header>
+
+    <section class="metric-strip" id="metric-strip" aria-label="Top metrics"></section>
+
+    <nav class="tabs glass" id="tabs" role="tablist" aria-label="Panels">
+      <button type="button" class="tab active" data-panel="fee" role="tab">Fee Radar</button>
+      <button type="button" class="tab" data-panel="shield" role="tab">Debit Shield</button>
+      <button type="button" class="tab" data-panel="subs" role="tab">Subscription Drain</button>
+      <button type="button" class="tab" data-panel="bills" role="tab">Bill Float</button>
+      <button type="button" class="tab" data-panel="debt" role="tab">Debt Ladder</button>
+      <button type="button" class="tab" data-panel="runway" role="tab">Cash Runway</button>
+      <button type="button" class="tab" data-panel="all" role="tab">All Panels</button>
+    </nav>
+
+    <main class="panels" id="panels">
+      <section class="panel glass" id="panel-fee" data-panel="fee">
+        <header class="panel-head">
+          <h2>Fee Radar</h2>
+          <p class="panel-sub" id="fee-sub"></p>
+        </header>
+        <div class="stat-row" id="fee-stats"></div>
+        <div class="leak-row" id="fee-leaks"></div>
+        <div class="card-grid" id="fee-list"></div>
+      </section>
+
+      <section class="panel glass" id="panel-shield" data-panel="shield" hidden>
+        <header class="panel-head">
+          <h2>Debit Shield</h2>
+          <p class="panel-sub" id="shield-sub"></p>
+        </header>
+        <div class="stat-row" id="shield-stats"></div>
+        <div class="card-grid" id="debit-list"></div>
+      </section>
+
+      <section class="panel glass" id="panel-subs" data-panel="subs" hidden>
+        <header class="panel-head">
+          <h2>Subscription Drain</h2>
+          <p class="panel-sub" id="subs-sub"></p>
+        </header>
+        <div class="stat-row" id="subs-stats"></div>
+        <div class="kill-banner" id="kill-banner" hidden></div>
+        <div class="card-grid" id="subs-list"></div>
+      </section>
+
+      <section class="panel glass" id="panel-bills" data-panel="bills" hidden>
+        <header class="panel-head">
+          <h2>Bill Float Calendar</h2>
+          <p class="panel-sub" id="bills-sub"></p>
+        </header>
+        <div class="stat-row" id="bills-stats"></div>
+        <div class="cluster-banner" id="cluster-banner"></div>
+        <div class="timeline" id="bills-list"></div>
+      </section>
+
+      <section class="panel glass" id="panel-debt" data-panel="debt" hidden>
+        <header class="panel-head">
+          <h2>Debt Ladder</h2>
+          <p class="panel-sub" id="debt-sub"></p>
+        </header>
+        <div class="stat-row" id="debt-stats"></div>
+        <div class="ladder" id="debt-list"></div>
+      </section>
+
+      <section class="panel glass" id="panel-runway" data-panel="runway" hidden>
+        <header class="panel-head">
+          <h2>Cash Runway</h2>
+          <p class="panel-sub" id="runway-sub"></p>
+        </header>
+        <div class="stat-row" id="runway-stats"></div>
+        <div class="runway-layout" id="runway-body"></div>
+      </section>
+    </main>
+
+    <footer class="foot muted">
+      Demo sample · Orion household · not financial advice · no API keys
+    </footer>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

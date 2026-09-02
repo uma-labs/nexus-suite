@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NEXUS Pulse · Live Options Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#03070a;
+  --panel:rgba(6,18,22,.82);
+  --panel2:rgba(8,24,28,.92);
+  --line:rgba(0,229,200,.28);
+  --line2:rgba(124,255,178,.18);
+  --text:#e8fff8;
+  --muted:#7a9a92;
+  --cyan:#00e5c8;
+  --emerald:#7CFF6B;
+  --mint:#b8ffd4;
+  --amber:#ffc14a;
+  --mag:#ff4d9a;
+  --red:#ff5c7a;
+  --glow:0 0 32px rgba(0,229,200,.18);
+  --glass:blur(16px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  color:var(--text);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  background:
+    radial-gradient(900px 480px at 6% -10%,rgba(0,229,200,.16),transparent 55%),
+    radial-gradient(700px 420px at 95% 0%,rgba(124,255,107,.10),transparent 50%),
+    radial-gradient(600px 360px at 50% 100%,rgba(255,193,74,.06),transparent 55%),
+    linear-gradient(180deg,#020608,#041016 40%,#020608);
+  padding:16px 16px 48px;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,229,200,.5) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,200,.5) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+.shell{position:relative;z-index:1;max-width:1480px;margin:0 auto}
+
+/* header */
+header{
+  display:flex;justify-content:space-between;gap:16px;align-items:flex-end;
+  margin-bottom:14px;flex-wrap:wrap;
+}
+.brand{
+  font-family:Orbitron,sans-serif;letter-spacing:.16em;font-size:11px;
+  color:var(--cyan);text-shadow:0 0 16px rgba(0,229,200,.7);
+}
+h1{
+  font-family:Orbitron,sans-serif;font-size:clamp(22px,4vw,30px);font-weight:700;
+  letter-spacing:.04em;margin-top:4px;
+  background:linear-gradient(90deg,var(--text),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.sub{color:var(--muted);font-size:13px;margin-top:4px;max-width:52ch}
+.meta-col{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.meta-col .clock{display:block;color:var(--text);font-size:18px;margin-bottom:4px;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line);border-radius:999px;padding:4px 10px;
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cyan);background:rgba(0,229,200,.08);
+}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 1.4s infinite}
+.chip.open{border-color:rgba(124,255,107,.45);color:var(--emerald);background:rgba(124,255,107,.1)}
+.chip.open i{background:var(--emerald);box-shadow:0 0 10px var(--emerald)}
+.chip.closed{border-color:rgba(255,193,74,.4);color:var(--amber);background:rgba(255,193,74,.08)}
+.chip.closed i{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:none}
+.chip.live{border-color:rgba(124,255,107,.5);color:var(--emerald)}
+.chip.delayed{border-color:rgba(255,193,74,.45);color:var(--amber)}
+.chip.stale{border-color:rgba(255,92,122,.45);color:var(--red)}
+.chip.err{border-color:rgba(255,92,122,.55);color:var(--red);background:rgba(255,92,122,.1)}
+.chip.mine{background:rgba(184,255,212,.95);color:#041208;border-color:transparent;font-weight:700;letter-spacing:.08em}
+@keyframes pulse{50%{opacity:.35}}
+
+/* risk strip */
+.risk{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  margin-bottom:14px;padding:10px 14px;border-radius:12px;
+  border:1px solid rgba(255,193,74,.35);
+  background:linear-gradient(90deg,rgba(255,193,74,.12),rgba(0,229,200,.06));
+  font-size:12px;color:#e8dcc0;
+}
+.risk b{color:var(--amber);font-family:"IBM Plex Mono",monospace}
+.risk .sep{opacity:.4}
+
+/* sections */
+.section-label{
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  margin:18px 0 10px;display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+/* hero strip — swipeable */
+.hero-strip{
+  display:flex;gap:12px;overflow-x:auto;padding:4px 2px 14px;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:rgba(0,229,200,.35) transparent;
+}
+.hero-strip::-webkit-scrollbar{height:6px}
+.hero-strip::-webkit-scrollbar-thumb{background:rgba(0,229,200,.35);border-radius:999px}
+
+.smart{
+  flex:0 0 min(260px,78vw);scroll-snap-align:start;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:14px 14px 12px;backdrop-filter:var(--glass);box-shadow:var(--glow);
+  position:relative;overflow:hidden;min-height:148px;
+  transition:border-color .2s,transform .15s;
+}
+.smart:hover{border-color:rgba(0,229,200,.55);transform:translateY(-2px)}
+.smart.mine-card{
+  border-color:rgba(124,255,107,.55);
+  background:linear-gradient(160deg,rgba(124,255,107,.14),rgba(6,18,22,.9));
+  box-shadow:0 0 28px rgba(124,255,107,.18);
+}
+.smart .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.smart .ticker{
+  font-family:Orbitron,sans-serif;font-size:16px;letter-spacing:.06em;font-weight:700;
+}
+.smart .name{font-size:10px;color:var(--muted);margin-top:2px;max-width:14ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smart .last{
+  font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:500;margin-top:10px;
+}
+.smart .chg{
+  font-family:"IBM Plex Mono",monospace;font-size:13px;margin-top:2px;
+}
+.up{color:var(--mint)}.down{color:var(--red)}.flat{color:var(--muted)}
+.smart .meta-row{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:10px;color:var(--muted);
+  font-family:"IBM Plex Mono",monospace;
+}
+.spark{position:absolute;right:8px;bottom:8px;width:110px;height:42px;opacity:.85;pointer-events:none}
+.badge-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+
+/* grids */
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;
+}
+.panel{
+  background:var(--panel2);border:1px solid var(--line2);border-radius:14px;
+  padding:14px 16px;backdrop-filter:var(--glass);
+}
+.panel h2{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+}
+.scan-row{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-top:1px solid rgba(255,255,255,.05);font-size:13px;
+}
+.scan-row:first-of-type{border-top:none;padding-top:0}
+.scan-row .rank{font-family:"IBM Plex Mono",monospace;color:var(--muted);width:28px;font-size:11px}
+.scan-row .sym{font-family:Orbitron,sans-serif;font-size:13px;letter-spacing:.04em;min-width:56px}
+.scan-row .px{font-family:"IBM Plex Mono",monospace;margin-left:auto}
+.scan-row .pc{font-family:"IBM Plex Mono",monospace;width:72px;text-align:right}
+.scan-row .vol{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:11px;width:64px;text-align:right}
+.idea-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.footer{
+  margin-top:22px;color:var(--muted);font-size:11px;
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.mono{font-family:"IBM Plex Mono",monospace}
+.skel{opacity:.4}
+@media(max-width:700px){
+  header{align-items:flex-start}
+  .meta-col{text-align:left}
+  .chips{justify-content:flex-start}
+  .smart{flex-basis:min(240px,85vw)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div>
+      <div class="brand">NEXUS // PULSE · OPTIONS HUD</div>
+      <h1>LIVE TAPE COMMAND</h1>
+      <div class="sub">Umapathy desk · liquid underlyings + MINE holdings · quotes only when real · no fabricated prints</div>
+    </div>
+    <div class="meta-col">
+      <span class="clock" id="clock">—</span>
+      <div id="sessionLabel">session —</div>
+      <div class="chips">
+        <span class="chip" id="feedChip"><i></i> BOOT</span>
+        <span class="chip closed" id="mktChip"><i></i> —</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="risk" role="note">
+    <span>Risk OS (display only)</span>
+    <span class="sep">·</span>
+    <span>Idea risk ≤ <b>$300</b></span>
+    <span class="sep">·</span>
+    <span>Time stop <b>15:45 ET</b></span>
+    <span class="sep">·</span>
+    <span>No order routing · confirm on broker</span>
+  </div>
+
+  <div class="section-label">Hero scan · top movers / liquid</div>
+  <div class="hero-strip" id="heroStrip" aria-label="Live movers smart cards"></div>
+
+  <div class="section-label">Featured options ideas · liquid + holdings</div>
+  <div class="grid" id="featuredGrid"></div>
+
+  <div class="section-label" style="margin-top:22px">Live scan · ranked</div>
+  <div class="panel">
+    <h2>Abs % move · volume when available · <span id="scanStamp" class="mono">—</span></h2>
+    <div id="scanList"></div>
+  </div>
+
+  <footer class="footer">
+    <div>NEXUS Pulse · auto-refresh ~15s · Yahoo delayed public quotes via /proxy/yahoo</div>
+    <div>Not investment advice · America/New_York session clock</div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const HOLDINGS = new Set(["SPCX", "RKLB", "ASTS", "RVI"]);
+  const FEATURED = [
+    { t: "NVDA", note: "AI / mega-cap liquidity · weeklies thick" },
+    { t: "SPY", note: "Index beta · macro whip tape" },
+    { t: "QQQ", note: "Nasdaq-100 beta · tech corridor" },
+    { t: "TSLA", note: "High-beta single-name options" },
+    { t: "META", note: "Mega-cap liquid chain" },
+    { t: "MU", note: "Memory / AI supply chain watch" },
+    { t: "CRM", note: "Software beta · post-print digestion" },
+    { t: "CRWD", note: "Cyber beta · liquid weeklies" },
+    { t: "SPCX", note: "Holding · SpaceX / lockup calendar" },
+    { t: "RKLB", note: "Holding · launch cadence / high beta" },
+    { t: "ASTS", note: "Holding · long-duration satellite" },
+    { t: "RVI", note: "Holding · CEF + listed options" },
+  ];
+  const UNIVERSE = [...new Set(FEATURED.map((x) => x.t))];
+  const REFRESH_MS = 15000;
+  const STALE_MS = 45000;
+
+  const $ = (id) => document.getElementById(id);
+  const notes = Object.fromEntries(FEATURED.map((x) => [x.t, x.note]));
+
+  let quoteMap = {};
+  let lastOkAt = 0;
+  let feedStatus = "BOOT";
+
+  function fmt(n, d = 2) {
+    if (n == null || Number.isNaN(+n)) return "—";
+    return (+n).toLocaleString(undefined, {
+      minimumFractionDigits: d,
+      maximumFractionDigits: d,
+    });
+  }
+  function money(n) {
+    return n == null || Number.isNaN(+n) ? "—" : "$" + fmt(n);
+  }
+  function pctStr(n) {
+    if (n == null || Number.isNaN(+n)) return "—";
+    return (n > 0 ? "+" : "") + fmt(n) + "%";
+  }
+  function cls(n) {
+    if (n == null || Number.isNaN(+n) || n === 0) return "flat";
+    return n > 0 ? "up" : "down";
+  }
+  function volStr(v) {
+    if (v == null || Number.isNaN(+v)) return "—";
+    const n = +v;
+    if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(0) + "K";
+    return String(n);
+  }
+
+  function etParts(d = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const g = (t) => parts.find((p) => p.type === t)?.value;
+    return {
+      label:
+        g("weekday") +
+        " " +
+        g("month") +
+        " " +
+        g("day") +
+        " · " +
+        g("hour") +
+        ":" +
+        g("minute") +
+        ":" +
+        g("second") +
+        " ET",
+      hour: +g("hour"),
+      minute: +g("minute"),
+      second: +g("second"),
+      weekday: g("weekday"),
+    };
+  }
+
+  function isCashSessionOpen(p) {
+    // Heuristic US cash: Mon–Fri 09:30–16:00 ET (ignores holidays)
+    if (["Sat", "Sun"].includes(p.weekday)) return false;
+    const mins = p.hour * 60 + p.minute;
+    return mins >= 9 * 60 + 30 && mins < 16 * 60;
+  }
+
+  function tickClock() {
+    const p = etParts();
+    $("clock").textContent = p.label;
+    const open = isCashSessionOpen(p);
+    const mkt = $("mktChip");
+    mkt.className = "chip " + (open ? "open" : "closed");
+    mkt.innerHTML = "<i></i> " + (open ? "CASH OPEN" : "CASH CLOSED");
+    $("sessionLabel").textContent = open
+      ? "US cash session · open until 16:00 ET"
+      : "US cash session · closed (pre/post may still print)";
+  }
+
+  function setFeed(status, detail) {
+    feedStatus = status;
+    const el = $("feedChip");
+    const map = {
+      LIVE: "live",
+      DELAYED: "delayed",
+      STALE: "stale",
+      ERROR: "err",
+      BOOT: "",
+    };
+    el.className = "chip " + (map[status] || "");
+    el.innerHTML = "<i></i> " + status + (detail ? " · " + detail : "");
+  }
+
+  function sparkSvg(points, up) {
+    if (!points || points.length < 2) return "";
+    const w = 110,
+      h = 42,
+      pad = 2;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const span = max - min || 1;
+    const coords = points.map((v, i) => {
+      const x = pad + (i / (points.length - 1)) * (w - pad * 2);
+      const y = pad + (1 - (v - min) / span) * (h - pad * 2);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    });
+    const color = up ? "#7CFF6B" : up === false ? "#ff5c7a" : "#00e5c8";
+    return (
+      '<svg class="spark" viewBox="0 0 ' +
+      w +
+      " " +
+      h +
+      '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polyline fill="none" stroke="' +
+      color +
+      '" stroke-width="1.6" points="' +
+      coords.join(" ") +
+      '"/></svg>'
+    );
+  }
+
+  function cardHtml(q, opts) {
+    opts = opts || {};
+    const t = q.symbol || q.t;
+    const mine = HOLDINGS.has(t);
+    const err = !q.ok || q.price == null;
+    const chgCls = cls(q.pct);
+    const spark =
+      !err && q.spark && q.spark.length >= 2
+        ? sparkSvg(q.spark, q.pct == null ? null : q.pct >= 0)
+        : "";
+    const badges = [];
+    if (mine) badges.push('<span class="chip mine">MINE</span>');
+    if (err) badges.push('<span class="chip err">ERR</span>');
+    else if (q.stale) badges.push('<span class="chip stale">STALE</span>');
+    return (
+      '<article class="smart' +
+      (mine ? " mine-card" : "") +
+      (opts.skel ? " skel" : "") +
+      '" data-sym="' +
+      t +
+      '">' +
+      '<div class="top"><div><div class="ticker">' +
+      t +
+      '</div><div class="name">' +
+      (q.shortName || notes[t] || "") +
+      '</div></div><div class="badge-row">' +
+      badges.join("") +
+      "</div></div>" +
+      '<div class="last ' +
+      (err ? "flat" : chgCls) +
+      '">' +
+      (err ? "—" : money(q.price)) +
+      "</div>" +
+      '<div class="chg ' +
+      chgCls +
+      '">' +
+      (err ? q.error || "quote miss" : pctStr(q.pct)) +
+      (err || q.change == null ? "" : " · " + (q.change > 0 ? "+" : "") + fmt(q.change)) +
+      "</div>" +
+      '<div class="meta-row">' +
+      (q.volume != null ? "<span>vol " + volStr(q.volume) + "</span>" : "") +
+      (q.marketState ? "<span>" + q.marketState + "</span>" : "") +
+      "</div>" +
+      spark +
+      "</article>"
+    );
+  }
+
+  function renderAll() {
+    const list = UNIVERSE.map((t) => quoteMap[t] || { symbol: t, ok: false, error: "pending" });
+
+    // Hero: rank by abs % when available, else holdings first then featured order
+    const ranked = list
+      .slice()
+      .sort((a, b) => {
+        const ap = a.ok && a.pct != null ? Math.abs(a.pct) : -1;
+        const bp = b.ok && b.pct != null ? Math.abs(b.pct) : -1;
+        if (bp !== ap) return bp - ap;
+        const av = a.volume != null ? a.volume : -1;
+        const bv = b.volume != null ? b.volume : -1;
+        return bv - av;
+      });
+
+    $("heroStrip").innerHTML = ranked
+      .slice(0, 10)
+      .map((q) => cardHtml(q))
+      .join("");
+
+    $("featuredGrid").innerHTML = FEATURED.map((f) => {
+      const q = quoteMap[f.t] || { symbol: f.t, ok: false, error: "pending", shortName: f.note };
+      const html = cardHtml({ ...q, shortName: q.shortName || f.t });
+      return html.replace(
+        "</article>",
+        '<div class="idea-note">' + f.note + "</div></article>"
+      );
+    }).join("");
+
+    const scan = ranked.filter((q) => true);
+    $("scanList").innerHTML = scan
+      .map((q, i) => {
+        const err = !q.ok || q.price == null;
+        const mine = HOLDINGS.has(q.symbol)
+          ? ' <span class="chip mine">MINE</span>'
+          : "";
+        return (
+          '<div class="scan-row">' +
+          '<span class="rank">#' +
+          String(i + 1).padStart(2, "0") +
+          "</span>" +
+          '<span class="sym">' +
+          q.symbol +
+          mine +
+          "</span>" +
+          '<span class="px ' +
+          (err ? "flat" : cls(q.pct)) +
+          '">' +
+          (err ? "—" : money(q.price)) +
+          "</span>" +
+          '<span class="pc ' +
+          cls(q.pct) +
+          '">' +
+          (err ? (q.error ? "ERR" : "—") : pctStr(q.pct)) +
+          "</span>" +
+          '<span class="vol">' +
+          volStr(q.volume) +
+          "</span>" +
+          "</div>"
+        );
+      })
+      .join("");
+
+    $("scanStamp").textContent = lastOkAt
+      ? new Date(lastOkAt).toLocaleTimeString("en-US", {
+          timeZone: "America/New_York",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+        }) + " ET"
+      : "—";
+  }
+
+  function basePath() {
+    // Works at / and when mounted as /pulse/ under another desk
+    const p = location.pathname.replace(/\/index\.html$/, "");
+    if (p.endsWith("/pulse")) return p + "/";
+    if (p.endsWith("/pulse/")) return p;
+    if (p.endsWith("/")) return p;
+    return p + "/";
+  }
+
+  async function fetchJson(url) {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }
+
+  function normalizeQuote(raw, symbol) {
+    if (!raw) return { symbol, ok: false, error: "empty" };
+    if (raw.ok === false || (raw.error && raw.price == null && raw.last == null)) {
+      return {
+        symbol: raw.symbol || symbol,
+        ok: false,
+        error: raw.error || "quote miss",
+        shortName: raw.shortName,
+      };
+    }
+    const price = raw.price ?? raw.last ?? null;
+    return {
+      symbol: raw.symbol || symbol,
+      ok: price != null,
+      price,
+      last: price,
+      previousClose: raw.previousClose ?? null,
+      change: raw.change ?? null,
+      pct: raw.pct ?? null,
+      volume: raw.volume ?? null,
+      marketState: raw.marketState ?? null,
+      shortName: raw.shortName || raw.name || symbol,
+      spark: Array.isArray(raw.spark) ? raw.spark : [],
+      delayed: raw.delayed !== false,
+      stale: !!raw.stale,
+      error: price == null ? raw.error || "no price" : null,
+    };
+  }
+
+  function parseYahooChart(data, symbol) {
+    const results = data?.chart?.result;
+    if (!results || !results.length) {
+      const err = data?.chart?.error;
+      return { symbol, ok: false, error: err ? String(err) : "no chart result" };
+    }
+    const result = results[0];
+    const meta = result.meta || {};
+    let price = meta.regularMarketPrice;
+    if (price == null) price = meta.postMarketPrice;
+    if (price == null) price = meta.preMarketPrice;
+    const prev = meta.previousClose ?? meta.chartPreviousClose;
+    let change = null,
+      pct = null;
+    if (price != null && prev) {
+      change = price - prev;
+      pct = (change / prev) * 100;
+    }
+    let spark = [];
+    try {
+      const closes = (result.indicators?.quote?.[0]?.close || []).filter((c) => c != null);
+      spark = closes;
+      if (spark.length > 48) {
+        const step = spark.length / 48;
+        spark = Array.from({ length: 48 }, (_, i) => spark[Math.floor(i * step)]);
+      }
+    } catch (_) {}
+    return normalizeQuote(
+      {
+        symbol,
+        ok: price != null,
+        price,
+        previousClose: prev,
+        change,
+        pct,
+        volume: meta.regularMarketVolume,
+        marketState: meta.marketState,
+        shortName: meta.shortName || meta.longName || symbol,
+        spark,
+        delayed: true,
+        error: price == null ? "no price in meta" : null,
+      },
+      symbol
+    );
+  }
+
+  async function pullViaProxy(symbols) {
+    const qs = encodeURIComponent(symbols.join(","));
+    const roots = [
+      "/proxy/yahoo?symbols=" + qs,
+      basePath() + "proxy/yahoo?symbols=" + qs,
+      "/pulse/proxy/yahoo?symbols=" + qs,
+    ];
+    let lastErr;
+    for (const url of roots) {
+      try {
+        const data = await fetchJson(url);
+        if (data && Array.isArray(data.quotes)) return data.quotes.map((q) => normalizeQuote(q, q.symbol));
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("proxy miss");
+  }
+
+  async function pullDirect(symbol) {
+    const yurl =
+      "https://query1.finance.yahoo.com/v8/finance/chart/" +
+      encodeURIComponent(symbol) +
+      "?interval=1m&range=1d&includePrePost=true";
+    const tries = [yurl, "https://corsproxy.io/?" + encodeURIComponent(yurl)];
+    let err;
+    for (const u of tries) {
+      try {
+        const data = await fetchJson(u);
+        return parseYahooChart(data, symbol);
+      } catch (e) {
+        err = e;
+      }
+    }
+    throw err;
+  }
+
+  async function refresh() {
+    try {
+      let quotes;
+      try {
+        quotes = await pullViaProxy(UNIVERSE);
+      } catch (_) {
+        quotes = await Promise.all(
+          UNIVERSE.map(async (t) => {
+            try {
+              return await pullDirect(t);
+            } catch (e) {
+              return { symbol: t, ok: false, error: String(e.message || e).slice(0, 80) };
+            }
+          })
+        );
+      }
+
+      const next = {};
+      let okN = 0;
+      quotes.forEach((q) => {
+        next[q.symbol] = q;
+        if (q.ok) okN++;
+      });
+      // Preserve last good price if refresh failed for a symbol (mark STALE), never invent
+      UNIVERSE.forEach((t) => {
+        if (!next[t]) next[t] = { symbol: t, ok: false, error: "missing" };
+        if (!next[t].ok && quoteMap[t]?.ok) {
+          next[t] = { ...quoteMap[t], stale: true, ok: true };
+        }
+      });
+      quoteMap = next;
+
+      if (okN > 0) {
+        lastOkAt = Date.now();
+        const anyStale = UNIVERSE.some((t) => quoteMap[t]?.stale);
+        const delayed = quotes.some((q) => q.delayed !== false);
+        setFeed(anyStale ? "STALE" : delayed ? "DELAYED" : "LIVE", okN + "/" + UNIVERSE.length);
+      } else {
+        setFeed("ERROR", "all miss");
+      }
+      renderAll();
+    } catch (e) {
+      setFeed("ERROR", String(e.message || e).slice(0, 40));
+      // Keep prior cards; mark feed error — do not invent
+      if (!Object.keys(quoteMap).length) {
+        UNIVERSE.forEach((t) => {
+          quoteMap[t] = { symbol: t, ok: false, error: "boot fail" };
+        });
+        renderAll();
+      }
+    }
+  }
+
+  function watchStale() {
+    if (!lastOkAt) return;
+    if (Date.now() - lastOkAt > STALE_MS && feedStatus !== "ERROR") {
+      setFeed("STALE", ">");
+      UNIVERSE.forEach((t) => {
+        if (quoteMap[t]?.ok) quoteMap[t] = { ...quoteMap[t], stale: true };
+      });
+      renderAll();
+    }
+  }
+
+  // Initial skeleton
+  UNIVERSE.forEach((t) => {
+    quoteMap[t] = { symbol: t, ok: false, error: "loading", shortName: notes[t] };
+  });
+  renderAll();
+  tickClock();
+  refresh();
+  setInterval(tickClock, 1000);
+  setInterval(refresh, REFRESH_MS);
+  setInterval(watchStale, 5000);
+})();
+</script>
+</body>
+</html>

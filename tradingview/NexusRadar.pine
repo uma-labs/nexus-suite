@@ -1,0 +1,301 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © NEXUS Radar — signals only, not financial advice
+
+//@version=5
+indicator("NEXUS Radar · Entry/Exit + Scan", shorttitle="NEXUS Radar", overlay=true, max_labels_count=500, max_lines_count=500)
+
+// ═══════════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════════
+grpTrend = "Trend"
+emaFastLen = input.int(9, "EMA Fast", minval=2, group=grpTrend)
+emaMidLen  = input.int(21, "EMA Mid", minval=2, group=grpTrend)
+emaSlowLen = input.int(55, "EMA Slow", minval=2, group=grpTrend)
+useHTF     = input.bool(true, "Use HTF trend filter", group=grpTrend)
+htfTF      = input.timeframe("240", "HTF timeframe", group=grpTrend)
+
+grpMom = "Momentum"
+rsiLen     = input.int(14, "RSI Length", minval=2, group=grpMom)
+rsiLongMax = input.int(55, "RSI long pullback max", minval=10, maxval=60, group=grpMom)
+rsiShortMin= input.int(45, "RSI short pullback min", minval=40, maxval=90, group=grpMom)
+macdFast   = input.int(12, "MACD Fast", group=grpMom)
+macdSlow   = input.int(26, "MACD Slow", group=grpMom)
+macdSig    = input.int(9, "MACD Signal", group=grpMom)
+
+grpVol = "Volatility / Exits"
+atrLen     = input.int(14, "ATR Length", minval=1, group=grpVol)
+stopMult   = input.float(1.2, "Stop ATR mult", step=0.1, group=grpVol)
+tp1Mult    = input.float(1.5, "TP1 ATR mult", step=0.1, group=grpVol)
+tp2Mult    = input.float(3.0, "TP2 ATR mult", step=0.1, group=grpVol)
+trailMult  = input.float(2.0, "Trail ATR mult", step=0.1, group=grpVol)
+
+grpScan = "Scanner / Liquidity filters"
+scanMode   = input.string("Active", "Scan mode", options=["Active", "Strict"], group=grpScan,
+     tooltip="Active = more setups (1H friendly). Strict = higher liquidity bar for scanners.")
+minRvol    = input.float(1.0, "Min relative volume", step=0.1, group=grpScan)
+minAtrPct  = input.float(0.8, "Min ATR %", step=0.1, group=grpScan)
+minDollar  = input.float(5.0, "Min avg $ volume (millions)", step=1.0, group=grpScan)
+volSmaLen  = input.int(20, "Volume SMA length", minval=2, group=grpScan)
+
+grpShow = "Display"
+tradeMode  = input.string("Both", "Trade mode", options=["Both", "Long only", "Short only"], group=grpShow)
+showEMAs   = input.bool(true, "Show EMAs", group=grpShow)
+showSignals= input.bool(true, "Show entry/exit marks", group=grpShow)
+showLevels = input.bool(true, "Show active trade levels", group=grpShow)
+showDash   = input.bool(true, "Show dashboard", group=grpShow)
+confirmBar = input.bool(true, "Require bar close (anti-repaint)", group=grpShow)
+
+// ═══════════════════════════════════════════════════════════
+// CORE SERIES
+// ═══════════════════════════════════════════════════════════
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+emaSlow = ta.ema(close, emaSlowLen)
+
+rsi = ta.rsi(close, rsiLen)
+[macdLine, signalLine, hist] = ta.macd(close, macdFast, macdSlow, macdSig)
+
+atr = ta.atr(atrLen)
+atrPct = close > 0 ? atr / close * 100.0 : 0.0
+volSma = ta.sma(volume, volSmaLen)
+rvol = volSma > 0 ? volume / volSma : 0.0
+dollarVolM = volSma * close / 1000000.0
+
+htfEmaMid = request.security(syminfo.tickerid, htfTF, ta.ema(close, emaMidLen), barmerge.gaps_off, barmerge.lookahead_off)
+htfClose  = request.security(syminfo.tickerid, htfTF, close, barmerge.gaps_off, barmerge.lookahead_off)
+htfBull = not useHTF or htfClose > htfEmaMid
+htfBear = not useHTF or htfClose < htfEmaMid
+
+upTrend = emaFast > emaMid and emaMid > emaSlow and close > emaMid and htfBull
+dnTrend = emaFast < emaMid and emaMid < emaSlow and close < emaMid and htfBear
+
+rvolNeed = minRvol * (1.15 if scanMode == "Strict" else 1.0)
+atrNeed  = minAtrPct * (1.25 if scanMode == "Strict" else 0.85)
+dolNeed  = minDollar * (2.0 if scanMode == "Strict" else 0.5)
+liqOk = rvol >= rvolNeed and atrPct >= atrNeed and dollarVolM >= dolNeed
+scanPass = liqOk and (upTrend or dnTrend)
+
+pullLong  = low <= emaMid + atr * 0.75
+pullShort = high >= emaMid - atr * 0.75
+momLong   = rsi <= rsiLongMax and (hist > hist[1] or macdLine > signalLine)
+momShort  = rsi >= rsiShortMin and (hist < hist[1] or macdLine < signalLine)
+rsiCrossUp = ta.crossover(rsi, 50)
+rsiCrossDn = ta.crossunder(rsi, 50)
+emaReclaim = ta.crossover(close, emaFast)
+emaReject  = ta.crossunder(close, emaFast)
+
+allowLong  = tradeMode != "Short only"
+allowShort = tradeMode != "Long only"
+
+longCond  = allowLong and upTrend and liqOk and pullLong and (momLong or rsiCrossUp or emaReclaim)
+shortCond = allowShort and dnTrend and liqOk and pullShort and (momShort or rsiCrossDn or emaReject)
+
+barOk = not confirmBar or barstate.isconfirmed
+longSetup  = longCond and barOk
+shortSetup = shortCond and barOk
+
+// Confluence score 0–100
+trendScore = upTrend ? 35 : dnTrend ? 35 : close > emaMid ? 15 : 5
+momScore   = math.min(25, math.max(0, upTrend ? (50 - rsi) * 0.6 : (rsi - 50) * 0.6))
+volScore   = math.min(25, rvol * 10)
+liqScore   = math.min(15, atrPct * 3)
+score = math.min(100, trendScore + momScore + volScore + liqScore)
+
+// ═══════════════════════════════════════════════════════════
+// TRADE STATE
+// ═══════════════════════════════════════════════════════════
+var int    posDir = 0          // 1 long, -1 short, 0 flat
+var float  entryPx = na
+var float  stopPx = na
+var float  tp1Px = na
+var float  tp2Px = na
+var float  trailPx = na
+var float  extremePx = na
+var bool   tp1Hit = false
+var line   lnStop = na
+var line   lnTp1 = na
+var line   lnTp2 = na
+var line   lnEntry = na
+var label  lbEntry = na
+
+f_clearLevels() =>
+    if not na(lnStop)
+        line.delete(lnStop)
+    if not na(lnTp1)
+        line.delete(lnTp1)
+    if not na(lnTp2)
+        line.delete(lnTp2)
+    if not na(lnEntry)
+        line.delete(lnEntry)
+    if not na(lbEntry)
+        label.delete(lbEntry)
+
+f_drawLevels(dir, e, s, t1, t2) =>
+    f_clearLevels()
+    cEntry = color.new(color.aqua, 0)
+    cStop  = color.new(color.red, 0)
+    cTp    = color.new(color.lime, 0)
+    lnE = line.new(bar_index - 1, e, bar_index + 25, e, color=cEntry, width=2, style=line.style_solid)
+    lnS = line.new(bar_index - 1, s, bar_index + 25, s, color=cStop, width=2, style=line.style_dashed)
+    ln1 = line.new(bar_index - 1, t1, bar_index + 25, t1, color=cTp, width=1, style=line.style_dotted)
+    ln2 = line.new(bar_index - 1, t2, bar_index + 25, t2, color=cTp, width=2, style=line.style_dotted)
+    txt = dir > 0 ? "LONG" : "SHORT"
+    lb = label.new(bar_index, e, txt + "\nE " + str.tostring(e, format.mintick) + "\nS " + str.tostring(s, format.mintick), style=label.style_label_left, color=color.new(color.black, 20), textcolor=color.white, size=size.small)
+    [lnE, lnS, ln1, ln2, lb]
+
+newLong  = longSetup and posDir <= 0 and (posDir == 0 or shortSetup == false)
+newShort = shortSetup and posDir >= 0 and not newLong
+
+exitLong  = false
+exitShort = false
+exitReason = ""
+
+if barOk
+    if newLong
+        if posDir < 0
+            exitShort := true
+            exitReason := "Flip"
+        posDir := 1
+        entryPx := close
+        stopPx := close - atr * stopMult
+        tp1Px := close + atr * tp1Mult
+        tp2Px := close + atr * tp2Mult
+        extremePx := high
+        trailPx := extremePx - atr * trailMult
+        tp1Hit := false
+        if showLevels
+            [a, b, c, d, e] = f_drawLevels(1, entryPx, stopPx, tp1Px, tp2Px)
+            lnEntry := a
+            lnStop := b
+            lnTp1 := c
+            lnTp2 := d
+            lbEntry := e
+    else if newShort
+        if posDir > 0
+            exitLong := true
+            exitReason := "Flip"
+        posDir := -1
+        entryPx := close
+        stopPx := close + atr * stopMult
+        tp1Px := close - atr * tp1Mult
+        tp2Px := close - atr * tp2Mult
+        extremePx := low
+        trailPx := extremePx + atr * trailMult
+        tp1Hit := false
+        if showLevels
+            [a, b, c, d, e] = f_drawLevels(-1, entryPx, stopPx, tp1Px, tp2Px)
+            lnEntry := a
+            lnStop := b
+            lnTp1 := c
+            lnTp2 := d
+            lbEntry := e
+    else if posDir > 0
+        extremePx := math.max(nz(extremePx, high), high)
+        trailCand = extremePx - atr * trailMult
+        trailPx := math.max(nz(trailPx, trailCand), trailCand)
+        activeStop = math.max(stopPx, trailPx)
+        if not tp1Hit and high >= tp1Px
+            tp1Hit := true
+        if low <= activeStop
+            exitLong := true
+            exitReason := "Stop/Trail"
+            posDir := 0
+        else if high >= tp2Px
+            exitLong := true
+            exitReason := "TP2"
+            posDir := 0
+        else if shortSetup
+            exitLong := true
+            exitReason := "Signal"
+            posDir := 0
+        if exitLong
+            f_clearLevels()
+        else if showLevels and not na(lnStop)
+            line.set_xy2(lnStop, bar_index + 5, activeStop)
+            line.set_xy2(lnEntry, bar_index + 5, entryPx)
+            line.set_xy2(lnTp1, bar_index + 5, tp1Px)
+            line.set_xy2(lnTp2, bar_index + 5, tp2Px)
+    else if posDir < 0
+        extremePx := math.min(nz(extremePx, low), low)
+        trailCand = extremePx + atr * trailMult
+        trailPx := math.min(nz(trailPx, trailCand), trailCand)
+        activeStop = math.min(stopPx, trailPx)
+        if not tp1Hit and low <= tp1Px
+            tp1Hit := true
+        if high >= activeStop
+            exitShort := true
+            exitReason := "Stop/Trail"
+            posDir := 0
+        else if low <= tp2Px
+            exitShort := true
+            exitReason := "TP2"
+            posDir := 0
+        else if longSetup
+            exitShort := true
+            exitReason := "Signal"
+            posDir := 0
+        if exitShort
+            f_clearLevels()
+        else if showLevels and not na(lnStop)
+            line.set_xy2(lnStop, bar_index + 5, activeStop)
+            line.set_xy2(lnEntry, bar_index + 5, entryPx)
+            line.set_xy2(lnTp1, bar_index + 5, tp1Px)
+            line.set_xy2(lnTp2, bar_index + 5, tp2Px)
+
+inLong  = posDir > 0
+inShort = posDir < 0
+
+// ═══════════════════════════════════════════════════════════
+// PLOTS / VISUALS
+// ═══════════════════════════════════════════════════════════
+plot(showEMAs ? emaFast : na, "EMA Fast", color=color.new(#00E5FF, 0), linewidth=1)
+plot(showEMAs ? emaMid  : na, "EMA Mid",  color=color.new(#FFD54F, 0), linewidth=2)
+plot(showEMAs ? emaSlow : na, "EMA Slow", color=color.new(#FF4081, 30), linewidth=2)
+
+plotshape(showSignals and newLong,  title="Entry Long",  style=shape.triangleup,   location=location.belowbar, color=color.new(#00E676, 0), size=size.small, text="IN")
+plotshape(showSignals and newShort, title="Entry Short", style=shape.triangledown, location=location.abovebar, color=color.new(#FF5252, 0), size=size.small, text="IN")
+plotshape(showSignals and exitLong and not newShort,  title="Exit Long",  style=shape.xcross, location=location.abovebar, color=color.new(#FFAB40, 0), size=size.tiny, text="OUT")
+plotshape(showSignals and exitShort and not newLong, title="Exit Short", style=shape.xcross, location=location.belowbar, color=color.new(#FFAB40, 0), size=size.tiny, text="OUT")
+
+barcolor(scanPass ? (upTrend ? color.new(#00E676, 85) : color.new(#FF5252, 85)) : na)
+
+// Screener columns (Pine Screener filters on these)
+plot(scanPass ? 1 : 0,  "Scan Pass", display=display.status_line + display.data_window)
+plot(longSetup ? 1 : 0, "Long Setup", display=display.status_line + display.data_window)
+plot(shortSetup ? 1 : 0,"Short Setup", display=display.status_line + display.data_window)
+plot(inLong ? 1 : 0,    "In Long", display=display.status_line + display.data_window)
+plot(inShort ? 1 : 0,   "In Short", display=display.status_line + display.data_window)
+plot(score,             "Confluence Score", display=display.status_line + display.data_window)
+plot(atrPct,            "ATR %", display=display.status_line + display.data_window)
+plot(rvol,              "Rel Volume", display=display.status_line + display.data_window)
+
+// Alerts
+alertcondition(newLong,  title="NEXUS Long Entry",  message="NEXUS Radar LONG entry on {{ticker}} @ {{close}}")
+alertcondition(newShort, title="NEXUS Short Entry", message="NEXUS Radar SHORT entry on {{ticker}} @ {{close}}")
+alertcondition(exitLong, title="NEXUS Exit Long",   message="NEXUS Radar EXIT LONG on {{ticker}} @ {{close}}")
+alertcondition(exitShort,title="NEXUS Exit Short",  message="NEXUS Radar EXIT SHORT on {{ticker}} @ {{close}}")
+alertcondition(scanPass and not scanPass[1], title="NEXUS Scan Pass", message="{{ticker}} passed NEXUS Scan filters")
+
+// Dashboard
+var table dash = table.new(position.top_right, 2, 8, bgcolor=color.new(#05070d, 15), border_width=1, border_color=color.new(#00E5FF, 60))
+if showDash and barstate.islast
+    bias = upTrend ? "BULL" : dnTrend ? "BEAR" : "RANGE"
+    setup = newLong ? "LONG IN" : newShort ? "SHORT IN" : longSetup ? "LONG READY" : shortSetup ? "SHORT READY" : "—"
+    active = inLong ? "LONG" : inShort ? "SHORT" : "FLAT"
+    rr = not na(entryPx) and not na(stopPx) and math.abs(entryPx - stopPx) > 0 ? math.abs((inLong ? tp2Px : tp2Px) - entryPx) / math.abs(entryPx - stopPx) : na
+    table.cell(dash, 0, 0, "NEXUS Radar", text_color=color.aqua, text_size=size.small)
+    table.cell(dash, 1, 0, syminfo.ticker, text_color=color.white, text_size=size.small)
+    table.cell(dash, 0, 1, "Bias", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 1, bias, text_color=upTrend ? color.lime : dnTrend ? color.red : color.orange, text_size=size.small)
+    table.cell(dash, 0, 2, "Score", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 2, str.tostring(score, "#.0"), text_color=color.white, text_size=size.small)
+    table.cell(dash, 0, 3, "RVOL", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 3, str.tostring(rvol, "#.00"), text_color=liqOk ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 4, "ATR%", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 4, str.tostring(atrPct, "#.00"), text_color=color.white, text_size=size.small)
+    table.cell(dash, 0, 5, "Scan", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 5, scanPass ? "PASS" : "FAIL", text_color=scanPass ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 6, "Setup", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 6, setup, text_color=color.aqua, text_size=size.small)
+    table.cell(dash, 0, 7, "Trade", text_color=color.gray, text_size=size.tiny)
+    table.cell(dash, 1, 7, active + (na(entryPx) or posDir == 0 ? "" : " @ " + str.tostring(entryPx, format.mintick)), text_color=color.white, text_size=size.small)

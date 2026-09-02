@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AGENT BRIDGE · Umapathy Dhanapal</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>Agent Bridge</h1>
+          <div class="sub">UMAPATHY · multi-agent ops board</div>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="pill live"><span class="dot"></span> LIVE DEMO</span>
+        <span class="pill">DEMO DATA · NOT LIVE API</span>
+        <time class="clock" id="clock" datetime="">--</time>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside class="panel" aria-label="Mission Today">
+        <div class="panel-title">Mission / Today</div>
+        <ul class="mission-list" id="missions"></ul>
+        <span class="demo-badge">DEMO ACTIVITY</span>
+      </aside>
+
+      <section class="stage" id="stage" aria-label="Agent network graph">
+        <svg id="graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="nodes" id="nodes"></div>
+        <aside class="drawer" id="drawer" aria-hidden="true">
+          <div class="drawer-head">
+            <div>
+              <h2 id="d-name">—</h2>
+              <div class="id" id="d-id"></div>
+            </div>
+            <button type="button" class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+          </div>
+          <p class="role-line" id="d-role"></p>
+          <div class="drawer-meta">
+            <div class="meta-card">
+              <div class="k">Status</div>
+              <div class="v" id="d-status">—</div>
+            </div>
+            <div class="meta-card">
+              <div class="k">Key</div>
+              <div class="v" id="d-key">—</div>
+            </div>
+          </div>
+          <div class="focus" id="d-focus"></div>
+          <div class="beats-title">Recent beats · DEMO ACTIVITY</div>
+          <ul class="beats" id="d-beats"></ul>
+        </aside>
+      </section>
+
+      <aside class="panel" aria-label="Loop status">
+        <div class="panel-title">Loop status</div>
+        <div class="pipeline" id="pipeline"></div>
+        <span class="demo-badge">Sense → Model → Act → Review</span>
+      </aside>
+    </div>
+
+    <footer class="ticker" aria-label="Status ticker">
+      <div class="ticker-label">STATUS</div>
+      <div class="ticker-track">
+        <div class="ticker-inner" id="ticker"></div>
+      </div>
+    </footer>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
