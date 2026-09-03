@@ -22,3 +22,7 @@ cd ..\agent-bridge; python server.py
 
 ## TradingView
 Paste `tradingview/NexusRadar_v2.pine` into Pine Editor on a **1H** chart.
+
+## TradingView Pro (validated)
+See `tradingview/pro/NexusRadar_Pro.pine` — Liquid 1H HYBRID / Book 1D EMA reclaim.
+Validation notes in `tradingview/pro/RESULTS.md`.
